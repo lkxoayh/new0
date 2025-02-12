@@ -98,80 +98,52 @@ def remove_old_files(output_folder):
 
 import datetime
 
+# Git push to the repository with proper error handling
 def git_push():
     try:
-        # Define the path to the merged output file in the repo folder.
+        # Path to the output file
         output_file_path = r"C:\Users\cousin\Documents\Doc\Fortnite\blurl\download\new\output_merged.mp4"
+        
+        # Ensure the file exists
         if not os.path.exists(output_file_path):
             print(f"Error: {output_file_path} does not exist!")
             return
-
-        # Initialize the repo (repository folder: "new")
-        repo = git.Repo(r"C:\Users\cousin\Documents\Doc\Fortnite\blurl\download\new")
+        
+        # Initialize the repo
+        repo = git.Repo(r"C:\Users\cousin\Documents\Doc\Fortnite\blurl\download\new")  # Path to your repo
         origin = repo.remotes.origin
-
-        # Set the GitHub remote URL
-        origin.set_url("https://github.com/lkxoayh/new.git")
-
-        # Fetch latest changes and ensure we're on the main branch
-        print("Fetching latest changes from remote...")
+        
+        # Fetch the latest changes from the remote
+        print("Fetching latest changes from the remote...")
         origin.fetch()
 
+        # Ensure you're on the correct branch (main)
         current_branch = repo.active_branch.name
         if current_branch != "main":
-            print(f"Switching from branch '{current_branch}' to 'main'...")
-
-            # Stash local changes before switching branches
-            print("Stashing local changes...")
-            repo.git.stash('save', 'Stashing local changes before switching branches')
-
+            print(f"Warning: You are on branch '{current_branch}', switching to 'main'...")
             repo.git.checkout("main")
+        
+        # Pull the latest changes before pushing
+        print("Pulling the latest changes from the remote repository...")
+        origin.pull()
 
-        print("Pulling latest changes from remote...")
-        try:
-            origin.pull()
-        except git.GitCommandError as e:
-            print(f"Error pulling changes: {e}")
-            print("Resolving conflicts manually...")
-            # Manually resolve conflicts by keeping the local version of the output_merged.mp4 file
-            repo.git.checkout('--ours', output_file_path)
-            repo.git.add(output_file_path)
-            repo.index.commit("Resolved merge conflict in output_merged.mp4")
-
-        # Apply stashed changes if any
-        if repo.is_dirty(untracked_files=True):
-            print("Applying stashed changes...")
-            try:
-                repo.git.stash('pop')
-            except git.GitCommandError as e:
-                print(f"Conflict detected: {e}")
-                print("Resolving conflict manually...")
-                # Manually resolve conflict by keeping the local version of the file
-                repo.git.checkout('--ours', output_file_path)
-                repo.git.add(output_file_path)
-                repo.index.commit("Resolved merge conflict in output_merged.mp4")
-
-        # Commit any local changes
-        print("Committing local changes...")
-        repo.git.add(A=True)
-        repo.index.commit("Stash local changes before switching branches")
-
-        # Create a new branch with a timestamp (e.g., new_20230412153000)
-        new_branch = "new_" + datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        print(f"Creating and switching to new branch: {new_branch}")
-        repo.git.checkout("-B", new_branch)
-
-        # Add only the merged output file to the commit
+        # Add the output_merged.mp4 file to Git
         repo.git.add(output_file_path)
-        repo.index.commit("Updated output_merged.mp4")
-        print("Pushing new branch to remote...")
-        origin.push("--set-upstream", new_branch)
-        print(f"output_merged.mp4 pushed successfully on branch {new_branch}!")
+
+        # Commit the changes
+        repo.index.commit("Added updated output_merged.mp4")
+
+        # Push the changes to the remote repository
+        print("Pushing changes to the remote repository...")
+        origin.push()
+
+        print("output_merged.mp4 pushed successfully!")
 
     except git.exc.GitCommandError as e:
         print(f"Error pushing changes: {e}")
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+
         
 # Main workflow
 def main():
