@@ -106,6 +106,9 @@ def remove_old_files(output_folder):
             file_path = os.path.join(output_folder, file_name)
             overwrite_file(file_path)
 
+import git
+import os
+
 # Git push to the repository
 def git_push():
     try:
@@ -120,23 +123,48 @@ def git_push():
         # Initialize the repo
         repo = git.Repo(r"C:\Users\cousin\Documents\Doc\Fortnite\blurl\download\new")  # Path to your repo
         origin = repo.remotes.origin
+        
+        # Fetch the latest changes from the remote
+        print("Fetching latest changes from the remote...")
+        origin.fetch()
 
-        # Add the output_merged.mp4 file
+        # Ensure you're on the correct branch (main)
+        current_branch = repo.active_branch.name
+        if current_branch != "main":
+            print(f"Warning: You are on branch '{current_branch}', switching to 'main'...")
+            repo.git.checkout("main")
+        
+        # Pull the latest changes before pushing
+        print("Pulling the latest changes from the remote repository...")
+        origin.pull()
+
+        # Check if there are unmerged files (merge conflicts)
+        status = repo.git.status("--porcelain")
+        if "UU" in status:
+            print("There are merge conflicts. Please resolve them before continuing.")
+            # If conflicts are found, stage the resolved files, commit and push
+            repo.git.add(output_file_path)  # Add the merged file
+            repo.index.commit("Resolved merge conflicts")  # Commit the changes
+            origin.push()  # Push to remote
+            print("Merge conflicts resolved and pushed successfully!")
+            return
+
+        # Add the output_merged.mp4 file to Git
         repo.git.add(output_file_path)
 
         # Commit the changes
         repo.index.commit("Added updated output_merged.mp4")
 
-        # Check if the branch has an upstream and push
-        if not repo.git.rev_parse("--abbrev-ref", "HEAD") == "main":
-            repo.git.push("--set-upstream", "origin", "main")
-        else:
-            origin.push()
+        # Push the changes to the remote repository
+        print("Pushing changes to the remote repository...")
+        origin.push()
 
         print("output_merged.mp4 pushed successfully!")
 
     except git.exc.GitCommandError as e:
         print(f"Error pushing changes: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
 
 # Main workflow
 def main():
