@@ -4,7 +4,7 @@ import json
 import subprocess
 import threading
 import time
-
+import git
 from urllib.parse import urljoin
 
 session = requests.Session()
@@ -106,13 +106,45 @@ def remove_old_files(output_folder):
             file_path = os.path.join(output_folder, file_name)
             overwrite_file(file_path)
 
+# Git push to the repository
+def git_push():
+    try:
+        # Path to the output file
+        output_file_path = r"C:\Users\cousin\Documents\Doc\Fortnite\blurl\download\new\output_merged.mp4"
+        
+        # Ensure the file exists
+        if not os.path.exists(output_file_path):
+            print(f"Error: {output_file_path} does not exist!")
+            return
+        
+        # Initialize the repo
+        repo = git.Repo(r"C:\Users\cousin\Documents\Doc\Fortnite\blurl\download\new")  # Path to your repo
+        origin = repo.remotes.origin
+
+        # Add the output_merged.mp4 file
+        repo.git.add(output_file_path)
+
+        # Commit the changes
+        repo.index.commit("Added updated output_merged.mp4")
+
+        # Check if the branch has an upstream and push
+        if not repo.git.rev_parse("--abbrev-ref", "HEAD") == "main":
+            repo.git.push("--set-upstream", "origin", "main")
+        else:
+            origin.push()
+
+        print("output_merged.mp4 pushed successfully!")
+
+    except git.exc.GitCommandError as e:
+        print(f"Error pushing changes: {e}")
+
 # Main workflow
 def main():
     video_uuid = str(input("video: "))
     start_time = time.time()
 
     base_url = f"https://cdn-0001.qstv.on.epicgames.com/{video_uuid}/"
-    output_folder = r"C:\Users\cousin\Documents\Doc\Fortnite\blurl\download"
+    output_folder = r"C:\Users\cousin\Documents\Doc\Fortnite\blurl\download\new"  # Path to 'new' directory for output files
     master_blurl_url = f"https://cdn-0001.qstv.on.epicgames.com/{video_uuid}/master.blurl"
     master_blurl_file = "master.blurl"
 
@@ -160,13 +192,16 @@ def main():
     # Step 10: 
     merged_output_file = os.path.join(output_folder, "output_merged.mp4")
     command = ["MP4Box", "-add", output_file_0, "-add", output_file_5, "-new", merged_output_file]
-    print(f"running MP4Box to merge: {output_file_0} and {output_file_5}")
+    print(f"Running MP4Box to merge: {output_file_0} and {output_file_5}")
     subprocess.run(command, check=True)
-    print(f"merged output saved to {merged_output_file}")
+    print(f"Merged output saved to {merged_output_file}")
+
+    # Git commit and push after each update
+    git_push()
 
     end_time = time.time()
     execution_time = end_time - start_time
-    print(f"execution Time: {execution_time:.2f} seconds")
+    print(f"Execution Time: {execution_time:.2f} seconds")
 
 if __name__ == "__main__":
     main()
